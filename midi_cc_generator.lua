@@ -8,9 +8,21 @@ ardour {
 }
 
 local state = {}
-local ncc = 128
+local params = {}
 
-for i = 1, ncc do
+
+-- expose all 128 CCs
+for i = 1, 128 do
+	params[i] = { ["type"] = "input", cc = i - 1, name = "CC" .. (i - 1), doc="Set to -1 to bypass", min = -1, max = 127,  default = -1, integer = true }
+end
+
+-- or comment above loop and manually define which CCs should be exposed:
+-- params[1] = { ["type"] = "input", cc = 0, name = "CC 0", doc="Set to -1 to bypass", min = -1, max = 127,  default = -1, integer = true }
+-- params[2] = { ["type"] = "input", cc = 10, name = "CC 10 (something)", doc="Set to -1 to bypass", min = -1, max = 127,  default = -1, integer = true }
+-- params[3] = { ["type"] = "input", cc = 20, name = "CC 20 (etc)", doc="Set to -1 to bypass", min = -1, max = 127,  default = -1, integer = true }
+
+
+for i = 1, #params do
 	state[i] = -1
 end
 
@@ -19,10 +31,6 @@ function dsp_ioconfig ()
 end
 
 function dsp_params ()
-	local params = {}
-	for i = 1, ncc do
-		params[i] = { ["type"] = "input", name = "CC" .. (i - 1), doc="Set to -1 to bypass", min = -1, max = 127,  default = -1, integer = true }
-	end
 	return params
 end
 
@@ -34,35 +42,30 @@ function dsp_run (_, _, n_samples)
 	local m = 1
 
 	-- inject midi cc
-	for i = 1, ncc do
+	for i, param in ipairs(params) do
 
 		-- only send once per cycle if value has changed
 		-- could be interpolated, but hey...
-		if state[i] ~= ctrl[i] then
 
+		if ctrl[i] == -1 then
+			-- reset cc to zero when sliding to -1 quickly
+			if state[i] > 0 then
+				midiout[m] = {}
+				midiout[m]["time"] = 1
+				midiout[m]["data"] = { 0xb0, param["cc"], 0 }
+				m = m + 1
+			end
+			state[i] = -1
+		else
 			-- round cc value in case of automation
 			local rctrl = math.floor(ctrl[i] + 0.5)
-
-			if state[i] ~= rctrl then
-				if rctrl >= 0 then
-					midiout[m] = {}
-					midiout[m]["time"] = 1
-					midiout[m]["data"] = { 0xb0, i - 1, rctrl }
-					m = m + 1
-				end
-
-				-- reset cc to zero when sliding to -1 quickly
-				if rctrl < 0 and state[i] ~= 0 then
-					midiout[m] = {}
-					midiout[m]["time"] = 1
-					midiout[m]["data"] = { 0xb0, i - 1, 0 }
-					m = m + 1
-				end
-
-				-- update last sent value
+			if rctrl ~= state[i] then
+				midiout[m] = {}
+				midiout[m]["time"] = 1
+				midiout[m]["data"] = { 0xb0, param["cc"], rctrl }
+				m = m + 1
 				state[i] = rctrl
 			end
-			
 		end
 	end
 
