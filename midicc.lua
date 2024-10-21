@@ -36,29 +36,33 @@ function dsp_run (_, _, n_samples)
 	-- inject midi cc
 	for i = 1, ncc do
 
-		-- round cc value in case of automation
-		local rctrl = math.floor(ctrl[i] + 0.5)
-
 		-- only send once per cycle if value has changed
 		-- could be interpolated, but hey...
-		if state[i] ~= rctrl then
-			if rctrl >= 0 then
-				midiout[m] = {}
-				midiout[m]["time"] = 1
-				midiout[m]["data"] = { 0xb0, i - 1, rctrl }
-				m = m + 1
-			end
+		if state[i] ~= ctrl[i] then
 
-			-- reset cc to zero when sliding to -1 quickly
-			if rctrl < 0 and state[i] ~= 0 then
-				midiout[m] = {}
-				midiout[m]["time"] = 1
-				midiout[m]["data"] = { 0xb0, i - 1, 0 }
-				m = m + 1
-			end
+			-- round cc value in case of automation
+			local rctrl = math.floor(ctrl[i] + 0.5)
 
-			-- update last sent value
-			state[i] = rctrl
+			if state[i] ~= rctrl then
+				if rctrl >= 0 then
+					midiout[m] = {}
+					midiout[m]["time"] = 1
+					midiout[m]["data"] = { 0xb0, i - 1, rctrl }
+					m = m + 1
+				end
+
+				-- reset cc to zero when sliding to -1 quickly
+				if rctrl < 0 and state[i] ~= 0 then
+					midiout[m] = {}
+					midiout[m]["time"] = 1
+					midiout[m]["data"] = { 0xb0, i - 1, 0 }
+					m = m + 1
+				end
+
+				-- update last sent value
+				state[i] = rctrl
+			end
+			
 		end
 	end
 
