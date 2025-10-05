@@ -34,7 +34,7 @@ end
 -- the DSP callback function
 function dsp_runmap (bufs, in_map, out_map, n_samples, offset)
 	local ctrl = CtrlPorts:array() -- get control port array
-	local target_gain = Session:record_status() ~= ARDOUR.Session.RecordState.Disabled and 1.0 or 0.0; -- when recording, target_gain = 0.0; otherwise use 1.0
+	local target_gain = Session:record_status() ~= ARDOUR.Session.RecordState.Disabled and 1.0 or 0.0; -- when recording, target_gain = 1.0; otherwise use 0.0
 	-- apply I/O map
 	ARDOUR.DSP.process_map (bufs, n_out, in_map, out_map, n_samples, offset)
 
